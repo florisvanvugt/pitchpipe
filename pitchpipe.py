@@ -1,38 +1,81 @@
 #!/usr/bin/python
 from __future__ import division #Avoid division problems in Python 2
-import wxversion
-wxversion.select("3.0")
+#import wxversion
+#wxversion.select("3.0")
 import wx, wx.html
 import sys
-import tkSnack
+#import tkSnack
 
 import math
 import pyaudio
 import sys
+
+import time
+import numpy as np
 
 pitches = "c c# d eb e f f# g g# a bb b".split(" ")
 basepitch = 415
 
 
 
-def playpitch(pitch):
+import pickle
 
-    PyAudio = pyaudio.PyAudio
+
+class PitchPlayer:
+
+    # How big chunks should be written at one time
+    #CHUNKSIZE = 4096
+    #CHUNKSIZE = 88200
+
+    #AMPLITUDE = 127
+    #OFFSET = 128
+
+    AMPLITUDE = .1
+
+    # Sampling rate
     RATE = 44100
-    data = ''.join([chr(int(math.sin(x/((RATE/pitch)/math.pi))*127+128)) for x in xrange(RATE)])
-    p = PyAudio()
 
-    stream = p.open(format =
-                    p.get_format_from_width(1),
-                    channels = 1,
-                    rate = RATE,
-                    output = True)
-    for DISCARD in xrange(5):
-        stream.write(data)
-    stream.stop_stream()
-    stream.close()
-    p.terminate()
-    
+    def __init__(self):
+        self.p = pyaudio.PyAudio()
+
+
+    def get_chunk(self,frame_count):
+        wav = self.AMPLITUDE*np.sin([ self.phase_offset + self.factor*x for x in xrange(frame_count) ])
+        # Decide what the phase must be at the end of this buffer
+        self.phase_offset = (self.phase_offset + frame_count*self.factor)%(2*math.pi)
+        return wav.astype(np.float32)
+
+    def callback(self,in_data, frame_count, time_info, status):
+        chunk = self.get_chunk(frame_count)
+        #print chunk
+        self.allplayed.append(chunk)
+        return (chunk, pyaudio.paContinue)
+
+    def play(self,pitch):
+        #data = ''.join([chr(int(math.sin(x/((RATE/pitch)/math.pi))*127+128)) for x in xrange(RATE)])
+        self.phase_offset = 0 # the current phase of the sine wave
+        self.frequency = pitch
+        self.allplayed = []
+
+        self.factor = float(self.frequency) * (math.pi * 2) / self.RATE
+
+        self.stream = self.p.open(format          = pyaudio.paFloat32,
+                                  channels        = 1,
+                                  rate            = self.RATE,
+                                  output          = True,
+                                  stream_callback = self.callback
+                              )
+
+
+    def stop(self):
+        self.stream.stop_stream()
+        self.stream.close()
+        #pickle.dump(self.allplayed,open('chunk.pickle','wb'))
+        
+
+    def close(self):
+        self.p.terminate()
+
 
 
 
@@ -67,7 +110,10 @@ class AboutBox(wx.Dialog):
         self.SetFocus()
 
 class Frame(wx.Frame):
+
     def __init__(self, title):
+        self.player = PitchPlayer()
+
         wx.Frame.__init__(self, None, title=title, pos=(150,150), size=(350,600))
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
@@ -87,7 +133,7 @@ class Frame(wx.Frame):
         panel = wx.Panel(self)
         box = wx.BoxSizer(wx.VERTICAL)
         
-        m_text = wx.StaticText(panel, -1, "Pitch Pipe")
+        m_text = wx.StaticText(panel, -1, "Sone of a pitch")
         m_text.SetFont(wx.Font(14, wx.SWISS, wx.NORMAL, wx.BOLD))
         m_text.SetSize(m_text.GetBestSize())
         box.Add(m_text, 0, wx.ALL, 10)
@@ -119,11 +165,16 @@ class Frame(wx.Frame):
         panel.Layout()
 
 
+
+
+
+
     def ClickPlay(self, event):
-        playpitch(415)
+        self.player.play(415)
 
     def StopPlay(self, event):
-        pass
+        self.player.stop()
+        #pass
     
         
     def OnClose(self, event):
@@ -134,7 +185,7 @@ class Frame(wx.Frame):
         dlg.ShowModal()
         dlg.Destroy()  
 
-app = wx.App(redirect=True)   # Error messages go to popup window
+app = wx.App() # redirect=True)   # Error messages go to popup window
 top = Frame("Pitch Pipe")
 top.Show()
 app.MainLoop()
