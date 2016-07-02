@@ -47,7 +47,7 @@ class PitchPlayer:
     #AMPLITUDE = 127
     #OFFSET = 128
 
-    AMPLITUDE = .1
+    AMPLITUDE = .25
 
     # Sampling rate
     RATE = 44100
@@ -141,6 +141,7 @@ class Frame(wx.Frame):
 
     def __init__(self, title):
         self.player = PitchPlayer()
+        self.selected_tone = None
 
         wx.Frame.__init__(self, None, title=title, pos=(150,150), size=(400,700))
         self.Bind(wx.EVT_CLOSE, self.OnClose)
@@ -169,10 +170,21 @@ class Frame(wx.Frame):
         topp.Add( (10, -1) )
         topp.Add( wx.StaticText(panel, -1, "A (Hz) = ") )
         self.basepitch = wx.TextCtrl(panel, -1, "415", size=(175, -1))
+        self.basepitch.Bind( wx.EVT_TEXT, self.textChange)
         topp.Add( self.basepitch )
 
         box.Add( (-1, 10) )
         box.Add( topp )
+
+
+        topp = wx.BoxSizer(wx.HORIZONTAL)
+        box.Add( (-1, 10) )
+
+        topp.Add( wx.StaticText(panel, -1, "Octave (0 for base) = ") )
+        self.octcorr = wx.TextCtrl(panel, -1, "0", size=(175, -1))
+        self.octcorr.Bind( wx.EVT_TEXT, self.textChange)
+        topp.Add( self.octcorr )
+        box.Add(topp)
 
         self.temperchoice = wx.RadioBox(panel,label = 'Temperament', 
                                         choices = temperaments ,
@@ -230,11 +242,18 @@ class Frame(wx.Frame):
         #print rb.GetId(),' is clicked from Radio Group' 
 
 
+    def textChange(self,e):
+        self.update_pitch()
+
+
     def find_pitch(self):
         """ Find the pitch we should be playing, based on the current selections in the GUI """
 
         # Find the current base pitch
         basepitch = float(self.basepitch.GetValue().strip())
+
+        # Find the octave correction
+        octcorr = float(self.octcorr.GetValue().strip())
 
         # Now find the selected tone in the scale
         tone = self.selected_tone if self.selected_tone != None else 0
@@ -242,7 +261,8 @@ class Frame(wx.Frame):
         # Find what the frequency ratio of that tone is relative to the currently
         # selected base pitch
         freqrat = self.freqrats[tone]
-        freq = basepitch * freqrat
+        freq = basepitch * freqrat * np.power(2.,octcorr)
+
         print("Playing frequency = %.2f Hz"%freq)
         return freq
 
