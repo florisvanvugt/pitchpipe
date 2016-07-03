@@ -62,36 +62,52 @@ class PitchPlayer:
         self.stop_now = True
 
     def get_chunk(self,frame_count):
-        wav = self.AMPLITUDE*np.sin([ self.phase_offset + self.factor*x for x in xrange(frame_count) ])
+        # The wave associated with the scale note
+        wav      = self.AMPLITUDE*np.sin([ self.phase_offset + self.factor*x for x in xrange(frame_count) ])
         # Decide what the phase must be at the end of this buffer
-        self.phase_offset = (self.phase_offset + frame_count*self.factor)%(2*math.pi)
+        self.phase_offset      = (self.phase_offset      + frame_count*self.factor)%(2*math.pi)
+
+        # If we are also supposed to play the base note, here it is:
+        if self.basefact!=None:
+            wav += self.AMPLITUDE*np.sin([ self.phase_offset_base + self.basefact*x for x in xrange(frame_count) ])
+            self.phase_offset_base = (self.phase_offset_base + frame_count*self.basefact)%(2*math.pi)
+
         return wav.astype(np.float32)
+
 
     def callback(self,in_data, frame_count, time_info, status):
         chunk = self.get_chunk(frame_count)
         #print chunk
-        self.allplayed.append(chunk)
+        #self.allplayed.append(chunk)
+        #print(chunk)
         if self.stop_now:
             return (chunk, pyaudio.paComplete)
         else:
             return (chunk, pyaudio.paContinue)
 
     
-    def setpitch(self,pitch):
-        """ Update the frequency we should be playing (in Hz) """
+    def setpitch(self,pitch,base=None):
+        """ 
+        Update the frequency we should be playing (in Hz).
+        Also, if base is not None then we also play the base note
+        at the given frequency.
+        """
         print("Setting pitch to",pitch)
         self.frequency = pitch
+        self.basefreq  = base
         self.allplayed = []
-        self.factor = float(self.frequency) * (math.pi * 2) / self.RATE
+        self.factor   = float(self.frequency) * (math.pi * 2) / self.RATE
+        self.basefact = None if self.basefreq==None else float(self.basefreq)  * (math.pi * 2) / self.RATE
         
 
 
-    def play(self,pitch):
+    def play(self):
+        """ Starts playing, assuming that a correct pitch has been set. """
         #data = ''.join([chr(int(math.sin(x/((RATE/pitch)/math.pi))*127+128)) for x in xrange(RATE)])
         if self.stop_now: # only start a new stream if we aren't already playing
             self.stop_now = False
-            self.phase_offset = 0 # the current phase of the sine wave
-            self.setpitch(pitch)
+            self.phase_offset      = 0 # the current phase of the sine wave
+            self.phase_offset_base = 0 # the current phase of the sine wave associated with the base pitch
             self.stream = self.p.open(format          = pyaudio.paFloat32,
                                       channels        = 1,
                                       rate            = self.RATE,
@@ -148,7 +164,7 @@ class Frame(wx.Frame):
         self.player = PitchPlayer()
         self.selected_tone = None
 
-        wx.Frame.__init__(self, None, title=title, pos=(150,150), size=(400,700))
+        wx.Frame.__init__(self, None, title=title, pos=(150,150), size=(400,750))
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
         menuBar = wx.MenuBar()
@@ -181,10 +197,17 @@ class Frame(wx.Frame):
         box.Add( (-1, 10) )
         box.Add( topp )
 
+        topp = wx.BoxSizer(wx.HORIZONTAL)
+        topp.Add( (10,-1) )
+        self.sound_base = wx.CheckBox(panel, label = 'Play A sound too')
+        self.sound_base.Bind(wx.EVT_CHECKBOX,self.onCheckBox)
+        topp.Add(self.sound_base)
+        box.Add( topp)
 
         topp = wx.BoxSizer(wx.HORIZONTAL)
         box.Add( (-1, 10) )
 
+        topp.Add( (10,-1) )
         topp.Add( wx.StaticText(panel, -1, "Octave (0 for base) = ") )
         self.octcorr = wx.TextCtrl(panel, -1, "0", size=(175, -1))
         self.octcorr.Bind( wx.EVT_TEXT, self.textChange)
@@ -267,6 +290,10 @@ class Frame(wx.Frame):
         self.update_pitch()
         
 
+    def onCheckBox(self,e):
+        self.update_pitch()
+
+
 
     def textChange(self,e):
         self.update_pitch()
@@ -290,17 +317,24 @@ class Frame(wx.Frame):
         freq = basepitch * freqrat * np.power(2.,octcorr)
 
         print("Playing frequency = %.2f Hz"%freq)
-        return freq
+
+        if self.sound_base.GetValue():
+            # If people selected that they want to hear the base pitch too
+            baseplay = basepitch
+        else:
+            baseplay = None
+
+        return (freq,baseplay)
 
 
     def update_pitch(self):
-        freq = self.find_pitch()
-        self.player.setpitch(freq)
+        freq,base = self.find_pitch()
+        self.player.setpitch(freq,base)
 
 
     def ClickPlay(self, event):
-        freq = self.find_pitch()
-        self.player.play(freq)
+        self.update_pitch()
+        self.player.play()
 
     def StopPlay(self, event):
         self.player.stop()
