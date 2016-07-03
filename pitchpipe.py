@@ -35,6 +35,11 @@ temp_perf_fifth = np.power(5,.25)
 def get_freq_ratios(temperament):
     if temperament == "quarter-comma meantone":
         return np.power(temp_perf_fifth,fifth_distance)*np.power(2.,sec_pow)
+    if temperament == "equal":
+        # Equal temperament
+        return np.power(2.,np.arange(0,12)/12.)
+        
+
 
 
 
@@ -189,10 +194,13 @@ class Frame(wx.Frame):
         self.temperchoice = wx.RadioBox(panel,label = 'Temperament', 
                                         choices = temperaments ,
                                         majorDimension = 1)
+        self.temperchoice.Bind(wx.EVT_RADIOBOX,self.onTemperChoice)
+        self.temperament = "quarter-comma meantone"
         box.Add(self.temperchoice)
 
         grid = wx.GridSizer(12,4,10,10)
-        self.freqrat = []
+        self.freqrat    = []
+        self.centlabels = []
         for i,pitch in enumerate(pitches):
             if i==0:
                 rb = wx.RadioButton(panel,i, label = pitch,style = wx.RB_GROUP)
@@ -205,7 +213,11 @@ class Frame(wx.Frame):
             rat = wx.StaticText(panel, -1, pitch) 
             self.freqrat.append ( rat )
             grid.Add( rat )
-            grid.Add( wx.StaticText(panel, -1, pitch) )
+
+            rat = wx.StaticText(panel, -1, pitch) 
+            self.centlabels.append( rat)
+
+            grid.Add( rat )
         box.Add(grid)
 
         butp = wx.BoxSizer(wx.HORIZONTAL)
@@ -230,9 +242,15 @@ class Frame(wx.Frame):
 
 
     def update_freqrat(self):
-        self.freqrats = get_freq_ratios("quarter-comma meantone")
+        # Update the frequencies associated with the steps in the scale
+        self.freqrats = get_freq_ratios(self.temperament)
+        logch = np.log2(self.freqrats)
+        self.cents = logch*1200
+
+        # Update the labels to reflect these new frequencies
         for i,pitch in enumerate(pitches):
             self.freqrat[i].SetLabel("%03f"%self.freqrats[i])
+            self.centlabels[i].SetLabel("%.01f cents"%self.cents[i])
 
 
     def onRadioGroup(self,e): 
@@ -240,6 +258,14 @@ class Frame(wx.Frame):
         self.selected_tone = rb.GetId()
         self.update_pitch()
         #print rb.GetId(),' is clicked from Radio Group' 
+
+
+    def onTemperChoice(self,e):
+        # Possibly a new temperament has been chosen
+        self.temperament = self.temperchoice.GetStringSelection()
+        self.update_freqrat()
+        self.update_pitch()
+        
 
 
     def textChange(self,e):
