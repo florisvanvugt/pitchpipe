@@ -15,7 +15,10 @@ import numpy as np
 import pickle
 
 #pitches = "c c# d eb e f f# g g# a bb b".split(" ")
-pitches = "a bb b c c# d eb e f f# g g#".split(" ")
+flat = unichr(0x266D)
+sharp = unichr(0x266F)
+pitchlist = "a b%s b c c%s d e%s e f f%s g g%s"%(flat,sharp,flat,sharp,sharp)
+pitches = pitchlist.split(" ")
 basepitch = 415
 
 temperaments = [ "quarter-comma meantone", "equal" ]
@@ -204,14 +207,20 @@ class Frame(wx.Frame):
         topp.Add(self.sound_base)
         box.Add( topp)
 
-        topp = wx.BoxSizer(wx.HORIZONTAL)
         box.Add( (-1, 10) )
 
+        topp = wx.BoxSizer(wx.HORIZONTAL)
         topp.Add( (10,-1) )
         topp.Add( wx.StaticText(panel, -1, "Octave (0 for base) = ") )
-        self.octcorr = wx.TextCtrl(panel, -1, "0", size=(175, -1))
+        self.octcorr = wx.TextCtrl(panel, -1, "0", size=(100, -1))
         self.octcorr.Bind( wx.EVT_TEXT, self.textChange)
         topp.Add( self.octcorr )
+        self.incrb = wx.Button(panel,  wx.ID_ADD,"+",size=(25,-1))
+        self.incrb.Bind(wx.EVT_BUTTON, self.onOctaveChange)
+        self.decrb = wx.Button(panel, wx.ID_DELETE, "-",size=(25,-1))
+        self.decrb.Bind(wx.EVT_BUTTON,  self.onOctaveChange)
+        topp.Add( self.decrb )
+        topp.Add( self.incrb )
         box.Add(topp)
 
         self.temperchoice = wx.RadioBox(panel,label = 'Temperament', 
@@ -221,14 +230,16 @@ class Frame(wx.Frame):
         self.temperament = "quarter-comma meantone"
         box.Add(self.temperchoice)
 
-        grid = wx.GridSizer(12,4,10,10)
+        grid = wx.GridSizer(12,5,10,10)
         self.freqrat    = []
         self.centlabels = []
+        self.hzs        = []
         for i,pitch in enumerate(pitches):
+            lbl = " %s "%pitch
             if i==0:
-                rb = wx.RadioButton(panel,i, label = pitch,style = wx.RB_GROUP)
+                rb = wx.RadioButton(panel,i, label =lbl,style = wx.RB_GROUP)
             else:
-                rb = wx.RadioButton(panel,i, label = pitch)
+                rb = wx.RadioButton(panel,i, label =lbl)
             rb.Bind( wx.EVT_RADIOBUTTON,self.onRadioGroup)
             rb.SetFont(wx.Font(14, wx.SWISS, wx.NORMAL, wx.BOLD))
             grid.Add( (15,-1) )
@@ -239,7 +250,10 @@ class Frame(wx.Frame):
 
             rat = wx.StaticText(panel, -1, pitch) 
             self.centlabels.append( rat)
+            grid.Add( rat )
 
+            rat = wx.StaticText(panel, -1, pitch) 
+            self.hzs.append( rat)
             grid.Add( rat )
         box.Add(grid)
 
@@ -269,11 +283,13 @@ class Frame(wx.Frame):
         self.freqrats = get_freq_ratios(self.temperament)
         logch = np.log2(self.freqrats)
         self.cents = logch*1200
+        hzs = self.freqrats*self.get_base_pitch()
 
         # Update the labels to reflect these new frequencies
         for i,pitch in enumerate(pitches):
             self.freqrat[i].SetLabel("%03f"%self.freqrats[i])
             self.centlabels[i].SetLabel("%.01f cents"%self.cents[i])
+            self.hzs[i].SetLabel("%.01f Hz"%hzs[i])
 
 
     def onRadioGroup(self,e): 
@@ -299,14 +315,54 @@ class Frame(wx.Frame):
         self.update_pitch()
 
 
+    def get_current_octave(self):
+        octcorr = 0
+        try:
+            # Find the octave correction
+            octcorr = int(self.octcorr.GetValue().strip())
+        except:
+            print "Can't determine octave: invalid value"
+
+        return octcorr
+
+
+
+    def get_base_pitch(self):
+        basep = 415
+        try:
+            # Find the octave correction
+            basep = float(self.basepitch.GetValue().strip())
+        except:
+            print "Can't determine base pitch: invalid value"
+
+        octcorr = self.get_current_octave()
+        return basep * np.power(2.,octcorr)
+        
+
+
+    def onOctaveChange(self,e):
+        # When people click the button to change the octave
+
+        octcorr = self.get_current_octave()
+
+        if e.GetEventObject()==self.incrb:
+            octcorr+=1
+        if e.GetEventObject()==self.decrb:
+            octcorr-=1
+
+        self.octcorr.SetValue(str(octcorr))
+
+        self.update_freqrat()
+        self.update_pitch()
+
+
+
+
     def find_pitch(self):
         """ Find the pitch we should be playing, based on the current selections in the GUI """
 
         # Find the current base pitch
-        basepitch = float(self.basepitch.GetValue().strip())
-
-        # Find the octave correction
-        octcorr = float(self.octcorr.GetValue().strip())
+        basepitch = self.get_base_pitch()
 
         # Now find the selected tone in the scale
         tone = self.selected_tone if self.selected_tone != None else 0
@@ -314,7 +370,7 @@ class Frame(wx.Frame):
         # Find what the frequency ratio of that tone is relative to the currently
         # selected base pitch
         freqrat = self.freqrats[tone]
-        freq = basepitch * freqrat * np.power(2.,octcorr)
+        freq = basepitch * freqrat
 
         print("Playing frequency = %.2f Hz"%freq)
 
