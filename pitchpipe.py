@@ -34,7 +34,7 @@ sec_pow        = np.array([ 0, 3, -1, 2, -2, 1, -3, 0, 3, -1, 2, -2 ])
 temp_perf_fifth = np.power(5,.25)
 
 # When you look at this, it makes sense: https://en.wikipedia.org/wiki/Quarter-comma_meantone
-
+# Also, some cool sound examples https://en.wikipedia.org/wiki/Just_intonation
 
 def get_freq_ratios(temperament):
     if temperament == "quarter-comma meantone":
