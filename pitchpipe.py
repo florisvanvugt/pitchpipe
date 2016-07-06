@@ -17,7 +17,8 @@ import pickle
 #pitches = "c c# d eb e f f# g g# a bb b".split(" ")
 flat = unichr(0x266D)
 sharp = unichr(0x266F)
-pitchlist = "a b%s b c c%s d e%s e f f%s g g%s"%(flat,sharp,flat,sharp,sharp)
+pitchlist = "a bes b c cis d ees e f fis g gis"
+pitchlist = pitchlist.replace('is',sharp).replace('es',flat)
 pitches = pitchlist.split(" ")
 basepitch = 415
 
@@ -60,22 +61,33 @@ class PitchPlayer:
     # Sampling rate
     RATE = 44100
 
+
+
     def __init__(self):
         self.p = pyaudio.PyAudio()
         self.stop_now = True
 
+        # These control the playing of the sound. Each wave corresponds to an entry in all three lists
+        self.pitches       = []  # the pitch (in Hz)
+        self.factors       = []  # the factor: phase increment as a function of frame
+        self.phase_offsets = []  # the current phase (when playing is active)
+
+
+
+
+
     def get_chunk(self,frame_count):
         # The wave associated with the scale note
-        wav      = self.AMPLITUDE*np.sin([ self.phase_offset + self.factor*x for x in xrange(frame_count) ])
-        # Decide what the phase must be at the end of this buffer
-        self.phase_offset      = (self.phase_offset      + frame_count*self.factor)%(2*math.pi)
+        wav = np.zeros(frame_count)
 
-        # If we are also supposed to play the base note, here it is:
-        if self.basefact!=None:
-            wav += self.AMPLITUDE*np.sin([ self.phase_offset_base + self.basefact*x for x in xrange(frame_count) ])
-            self.phase_offset_base = (self.phase_offset_base + frame_count*self.basefact)%(2*math.pi)
+        for (offset,factor) in zip(self.phase_offsets,self.factors):
+            wav += self.AMPLITUDE*np.sin([ offset + factor*x for x in xrange(frame_count) ])
+
+        # Update the phases: advance by factor*time for each
+        self.phase_offsets = [ (offs + frame_count*fact)%(2*math.pi) for offs,fact in zip(self.phase_offsets,self.factors) ]
 
         return wav.astype(np.float32)
+
 
 
     def callback(self,in_data, frame_count, time_info, status):
@@ -88,6 +100,7 @@ class PitchPlayer:
         else:
             return (chunk, pyaudio.paContinue)
 
+
     
     def setpitch(self,pitch,base=None):
         """ 
@@ -95,13 +108,17 @@ class PitchPlayer:
         Also, if base is not None then we also play the base note
         at the given frequency.
         """
-        print("Setting pitch to",pitch)
-        self.frequency = pitch
-        self.basefreq  = base
-        self.allplayed = []
-        self.factor   = float(self.frequency) * (math.pi * 2) / self.RATE
-        self.basefact = None if self.basefreq==None else float(self.basefreq)  * (math.pi * 2) / self.RATE
-        
+        self.pitches = [pitch]
+        if base!=None and base!=pitch:
+            self.pitches.append(base)
+        print "Currently playing: %s"%(" ".join([ "%.02f"%p for p in self.pitches ]))
+        # Compute the factors (phase increase per unit of time
+        self.factors  = [ float(pitch) * (2 * math.pi) / self.RATE for pitch in self.pitches ]
+        if len(self.phase_offsets)!=len(self.factors):
+            self.reset_phases()
+
+    
+
 
 
     def play(self):
@@ -109,14 +126,19 @@ class PitchPlayer:
         #data = ''.join([chr(int(math.sin(x/((RATE/pitch)/math.pi))*127+128)) for x in xrange(RATE)])
         if self.stop_now: # only start a new stream if we aren't already playing
             self.stop_now = False
-            self.phase_offset      = 0 # the current phase of the sine wave
-            self.phase_offset_base = 0 # the current phase of the sine wave associated with the base pitch
+            self.reset_phases()
             self.stream = self.p.open(format          = pyaudio.paFloat32,
                                       channels        = 1,
                                       rate            = self.RATE,
                                       output          = True,
                                       stream_callback = self.callback
                                   )
+
+
+    def reset_phases(self):
+        self.phase_offsets = [ 0. for _ in self.pitches ]
+
+
 
     def stop(self):
         #self.stream.stop_stream()
@@ -192,7 +214,7 @@ class Frame(wx.Frame):
 
         topp = wx.BoxSizer(wx.HORIZONTAL)
         topp.Add( (10, -1) )
-        topp.Add( wx.StaticText(panel, -1, "A (Hz) = ") )
+        topp.Add( wx.StaticText(panel, -1, "A4 (Hz) = ") )
         self.basepitch = wx.TextCtrl(panel, -1, "415", size=(175, -1))
         self.basepitch.Bind( wx.EVT_TEXT, self.textChange)
         topp.Add( self.basepitch )
@@ -212,7 +234,7 @@ class Frame(wx.Frame):
         topp = wx.BoxSizer(wx.HORIZONTAL)
         topp.Add( (10,-1) )
         topp.Add( wx.StaticText(panel, -1, "Octave (0 for base) = ") )
-        self.octcorr = wx.TextCtrl(panel, -1, "0", size=(100, -1))
+        self.octcorr = wx.TextCtrl(panel, -1, "4", size=(100, -1))
         self.octcorr.Bind( wx.EVT_TEXT, self.textChange)
         topp.Add( self.octcorr )
         self.incrb = wx.Button(panel,  wx.ID_ADD,"+",size=(25,-1))
@@ -287,7 +309,7 @@ class Frame(wx.Frame):
 
         # Update the labels to reflect these new frequencies
         for i,pitch in enumerate(pitches):
-            self.freqrat[i].SetLabel("%03f"%self.freqrats[i])
+            self.freqrat[i].SetLabel("%.03f ratio"%self.freqrats[i])
             self.centlabels[i].SetLabel("%.01f cents"%self.cents[i])
             self.hzs[i].SetLabel("%.01f Hz"%hzs[i])
 
@@ -316,7 +338,7 @@ class Frame(wx.Frame):
 
 
     def get_current_octave(self):
-        octcorr = 0
+        octcorr = 4
         try:
             # Find the octave correction
             octcorr = int(self.octcorr.GetValue().strip())
@@ -336,7 +358,7 @@ class Frame(wx.Frame):
             print "Can't determine base pitch: invalid value"
 
         octcorr = self.get_current_octave()
-        return basep * np.power(2.,octcorr)
+        return basep * np.power(2.,(octcorr-4))
         
 
 
@@ -372,15 +394,10 @@ class Frame(wx.Frame):
         freqrat = self.freqrats[tone]
         freq = basepitch * freqrat
 
-        print("Playing frequency = %.2f Hz"%freq)
+        if not self.sound_base.GetValue(): # if people checked the box that we should also play the base sound
+            basepitch=None
 
-        if self.sound_base.GetValue():
-            # If people selected that they want to hear the base pitch too
-            baseplay = basepitch
-        else:
-            baseplay = None
-
-        return (freq,baseplay)
+        return (freq,basepitch)
 
 
     def update_pitch(self):
