@@ -15,8 +15,8 @@ import numpy as np
 import pickle
 
 #pitches = "c c# d eb e f f# g g# a bb b".split(" ")
-flat = unichr(0x266D)
-sharp = unichr(0x266F)
+flat  = chr(0x266D) #unichr(0x266D)
+sharp = chr(0x266F) #unichr(0x266F)
 pitchlist = "a bes b c cis d ees e f fis g gis"
 pitchlist = pitchlist.replace('is',sharp).replace('es',flat)
 pitches = pitchlist.split(" ")
@@ -81,7 +81,7 @@ class PitchPlayer:
         wav = np.zeros(frame_count)
 
         for (offset,factor) in zip(self.phase_offsets,self.factors):
-            wav += self.AMPLITUDE*np.sin([ offset + factor*x for x in xrange(frame_count) ])
+            wav += self.AMPLITUDE*np.sin([ offset + factor*x for x in range(frame_count) ])
 
         # Update the phases: advance by factor*time for each
         self.phase_offsets = [ (offs + frame_count*fact)%(2*math.pi) for offs,fact in zip(self.phase_offsets,self.factors) ]
@@ -111,7 +111,7 @@ class PitchPlayer:
         self.pitches = [pitch]
         if base!=None and base!=pitch:
             self.pitches.append(base)
-        print "Currently playing: %s"%(" ".join([ "%.02f"%p for p in self.pitches ]))
+        print ("Currently playing: %s"%(" ".join([ "%.02f"%p for p in self.pitches ])))
         # Compute the factors (phase increase per unit of time
         self.factors  = [ float(pitch) * (2 * math.pi) / self.RATE for pitch in self.pitches ]
         if len(self.phase_offsets)!=len(self.factors):
@@ -343,7 +343,7 @@ class Frame(wx.Frame):
             # Find the octave correction
             octcorr = int(self.octcorr.GetValue().strip())
         except:
-            print "Can't determine octave: invalid value"
+            print ("Can't determine octave: invalid value")
 
         return octcorr
 
@@ -355,7 +355,7 @@ class Frame(wx.Frame):
             # Find the octave correction
             basep = float(self.basepitch.GetValue().strip())
         except:
-            print "Can't determine base pitch: invalid value"
+            print ("Can't determine base pitch: invalid value")
 
         octcorr = self.get_current_octave()
         return basep * np.power(2.,(octcorr-4))

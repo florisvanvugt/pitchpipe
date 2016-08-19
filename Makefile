@@ -1,2 +1,2 @@
 run:
-	python pitchpipe.py
+	python3 pitchpipe.py
