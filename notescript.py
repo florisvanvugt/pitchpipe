@@ -52,15 +52,20 @@ def parse_script_file(fname):
             pitch,dur = tuple(note)
 
             # Parse the pitch
-            pitch_name,pitch_oct = pitch[:-1],pitch[-1:]
-            if pitch_oct.isdigit():
-                pitch_oct = int(pitch_oct)
+            if pitch=="r":
+                pitch_oct = None
+                pitch_name = "r"
+
             else:
-                print("Error parsing octave %s"%pitch_oct)
-                return None
-            if not pitch_name in pitchlist:
-                print("Unknown pitch %s"%pitch_name)
-                return None
+                pitch_name,pitch_oct = pitch[:-1],pitch[-1:]
+                if pitch_oct.isdigit():
+                    pitch_oct = int(pitch_oct)
+                else:
+                    print("Error parsing octave %s"%pitch_oct)
+                    return None
+                if not pitch_name in pitchlist:
+                    print("Unknown pitch %s"%pitch_name)
+                    return None
 
             # Parse the duration
             plushalf = False
@@ -68,7 +73,7 @@ def parse_script_file(fname):
             if dur[-1] == ".":
                 plushalf = True
                 dur_base = dur[:-1]
-                
+
             if not dur_base.isdigit():
                 print("Problem parsing duration %s"%dur)
                 return None
@@ -147,6 +152,7 @@ def get_frequency(notename,octave):
 
     # Find what the frequency ratio of that tone is relative to the currently
     # selected base pitch
+
     tone = pitchlist_orig.index(notename)
     freqrat = frequency_ratios[tone]
     basep = basepitch * freqrat
@@ -168,10 +174,14 @@ def get_frequency(notename,octave):
 
 def make_note(note):
     """ Given a note, create a wave that represents that note."""
-    freq = get_frequency(note["pitch"],note["octave"])
-    amplitude = MAX_AMPLITUDE/4
     duration = note["duration.ms"]/1000.
-    return sine_wave(freq,FRAMERATE,amplitude,duration*FRAMERATE)
+    
+    if note["pitch"]=="r":
+        return np.array( [0]*int(duration*FRAMERATE) )
+    else:        
+        freq = get_frequency(note["pitch"],note["octave"])
+        amplitude = MAX_AMPLITUDE/4
+        return sine_wave(freq,FRAMERATE,amplitude,duration*FRAMERATE)
     
 
 
@@ -179,7 +189,7 @@ def make_note(note):
 def sonify(notes):
     """ Given a sequence of notes, sonify them """
     wavs = [ fade(make_note(note),FADE_DURATION) for note in notes ]
-    wv = np.concatenate(wavs)
+    wv = np.concatenate( [np.array([ 0 ]*2*FRAMERATE) ]+wavs)
     return wv
 
 
