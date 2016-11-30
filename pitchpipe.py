@@ -14,12 +14,14 @@ import time
 import numpy as np
 import pickle
 
+from temperament import *
+
 #pitches = "c c# d eb e f f# g g# a bb b".split(" ")
 flat  = chr(0x266D) #unichr(0x266D)
 sharp = chr(0x266F) #unichr(0x266F)
-pitchlist = "a bes b c cis d ees e f fis g gis"
-pitchlist = pitchlist.replace('is',sharp).replace('es',flat)
-pitches = pitchlist.split(" ")
+#pitchlist = "a bes b c cis d ees e f fis g gis"
+#pitchlist = pitchlist.replace('is',sharp).replace('es',flat)
+#pitches = pitchlist.split(" ")
 basepitch = 415
 
 temperaments = [ "quarter-comma meantone", "equal" ]
@@ -155,43 +157,14 @@ class PitchPlayer:
 
 
 
-aboutText = """<p>Sorry, there is no information about this program. It is
-running on version %(wxpy)s of <b>wxPython</b> and %(python)s of <b>Python</b>.
-See <a href="http://wiki.wxpython.org">wxPython Wiki</a></p>""" 
-
-class HtmlWindow(wx.html.HtmlWindow):
-    def __init__(self, parent, id, size=(600,400)):
-        wx.html.HtmlWindow.__init__(self,parent, id, size=size)
-        if "gtk2" in wx.PlatformInfo:
-            self.SetStandardFonts()
-
-    def OnLinkClicked(self, link):
-        wx.LaunchDefaultBrowser(link.GetHref())
         
-class AboutBox(wx.Dialog):
-    def __init__(self):
-        wx.Dialog.__init__(self, None, -1, "About <<project>>",
-            style=wx.DEFAULT_DIALOG_STYLE|wx.THICK_FRAME|wx.RESIZE_BORDER|
-                wx.TAB_TRAVERSAL)
-        hwin = HtmlWindow(self, -1, size=(400,200))
-        vers = {}
-        vers["python"] = sys.version.split()[0]
-        vers["wxpy"] = wx.VERSION_STRING
-        hwin.SetPage(aboutText % vers)
-        btn = hwin.FindWindowById(wx.ID_OK)
-        irep = hwin.GetInternalRepresentation()
-        hwin.SetSize((irep.GetWidth()+25, irep.GetHeight()+10))
-        self.SetClientSize(hwin.GetSize())
-        self.CentreOnParent(wx.BOTH)
-        self.SetFocus()
-
 class Frame(wx.Frame):
 
     def __init__(self, title):
         self.player = PitchPlayer()
         self.selected_tone = None
 
-        wx.Frame.__init__(self, None, title=title, pos=(150,150), size=(400,750))
+        wx.Frame.__init__(self, None, title=title, pos=(150,150), size=(600,850))
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
         menuBar = wx.MenuBar()
@@ -200,9 +173,6 @@ class Frame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnClose, m_exit)
         menuBar.Append(menu, "&File")
         menu = wx.Menu()
-        m_about = menu.Append(wx.ID_ABOUT, "&About", "Information about this program")
-        self.Bind(wx.EVT_MENU, self.OnAbout, m_about)
-        menuBar.Append(menu, "&Help")
         self.SetMenuBar(menuBar)
         
         self.statusbar = self.CreateStatusBar()
@@ -233,20 +203,6 @@ class Frame(wx.Frame):
 
         box.Add( (-1, 10) )
 
-        topp = wx.BoxSizer(wx.HORIZONTAL)
-        topp.Add( (10,-1) )
-        topp.Add( wx.StaticText(panel, -1, "Octave (0 for base) = ") )
-        self.octcorr = wx.TextCtrl(panel, -1, "4", size=(100, -1))
-        self.octcorr.Bind( wx.EVT_TEXT, self.textChange)
-        topp.Add( self.octcorr )
-        self.incrb = wx.Button(panel,  wx.ID_ADD,"+",size=(25,-1))
-        self.incrb.Bind(wx.EVT_BUTTON, self.onOctaveChange)
-        self.decrb = wx.Button(panel, wx.ID_DELETE, "-",size=(25,-1))
-        self.decrb.Bind(wx.EVT_BUTTON,  self.onOctaveChange)
-        topp.Add( self.decrb )
-        topp.Add( self.incrb )
-        box.Add(topp)
-
         self.temperchoice = wx.RadioBox(panel,label = 'Temperament', 
                                         choices = temperaments ,
                                         majorDimension = 1)
@@ -254,19 +210,57 @@ class Frame(wx.Frame):
         self.temperament = "quarter-comma meantone"
         box.Add(self.temperchoice)
 
-        grid = wx.GridSizer(12,5,10,10)
-        self.freqrat    = []
-        self.centlabels = []
-        self.hzs        = []
+        topp = wx.BoxSizer(wx.HORIZONTAL)
+        topp.Add( (10,-1) )
+
+        rootp = wx.BoxSizer(wx.VERTICAL)
+        rootp.Add( wx.StaticText(panel, -1, "Root") )
+
+        octp = wx.BoxSizer(wx.HORIZONTAL)
+        octp.Add( (10,-1) )
+        octp.Add( wx.StaticText(panel, -1, "Octave") )
+        self.octcorr = wx.TextCtrl(panel, -1, "4", size=(50, -1))
+        self.octcorr.Bind( wx.EVT_TEXT, self.textChange)
+        octp.Add( self.octcorr )
+        self.incrb = wx.Button(panel,  wx.ID_ADD,"+",size=(25,-1))
+        self.incrb.Bind(wx.EVT_BUTTON, self.onRootChange)
+        self.decrb = wx.Button(panel, wx.ID_DELETE, "-",size=(25,-1))
+        self.decrb.Bind(wx.EVT_BUTTON,  self.onRootChange)
+        octp.Add( self.decrb )
+        octp.Add( self.incrb )
+        rootp.Add(octp)
+
+        self.root_notes = []
         for i,pitch in enumerate(pitches):
             lbl = " %s "%pitch
             if i==0:
                 rb = wx.RadioButton(panel,i, label =lbl,style = wx.RB_GROUP)
             else:
                 rb = wx.RadioButton(panel,i, label =lbl)
-            rb.Bind( wx.EVT_RADIOBUTTON,self.onRadioGroup)
+            rb.Bind( wx.EVT_RADIOBUTTON,self.onRootChange)
             rb.SetFont(wx.Font(14, wx.SWISS, wx.NORMAL, wx.BOLD))
-            grid.Add( (15,-1) )
+            self.root_notes.append(rb)
+            #grid.Add( (15,-1) )
+            rootp.Add( rb )
+        topp.Add(rootp)
+        topp.Add( (30,-1) )
+        
+        grid = wx.GridSizer(12,4,10,10)
+        self.pitchnames = []
+        self.freqrat    = []
+        self.centlabels = []
+        self.hzs        = []
+        for i,pitch in enumerate(pitches):
+            lbl = " %s "%pitch
+            rb = wx.CheckBox(panel,i, label =lbl, size = (100,-1))
+            #if i==0:
+            #    rb = wx.RadioButton(panel,i, label =lbl,style = wx.RB_GROUP)
+            #else:
+            #    rb = wx.RadioButton(panel,i, label =lbl)
+            rb.Bind( wx.EVT_CHECKBOX,self.onRadioGroup)
+            rb.SetFont(wx.Font(14, wx.SWISS, wx.NORMAL, wx.BOLD))
+            #grid.Add( (15,-1) )
+            self.pitchnames.append( rb )
             grid.Add( rb )
             rat = wx.StaticText(panel, -1, pitch) 
             self.freqrat.append ( rat )
@@ -279,7 +273,9 @@ class Frame(wx.Frame):
             rat = wx.StaticText(panel, -1, pitch) 
             self.hzs.append( rat)
             grid.Add( rat )
-        box.Add(grid)
+
+        topp.Add( grid )
+        box.Add(topp)
 
         butp = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -298,6 +294,7 @@ class Frame(wx.Frame):
         
         panel.SetSizer(box)
         panel.Layout()
+        self.update_from_root()
         self.update_freqrat()
 
 
@@ -315,13 +312,64 @@ class Frame(wx.Frame):
             self.centlabels[i].SetLabel("%.01f cents"%self.cents[i])
             self.hzs[i].SetLabel("%.01f Hz"%hzs[i])
 
+            
+    def get_root_note(self):
+        """ Return the currently selected root note (including its octave). """
+        octave = self.get_current_octave()
+        note   = self.get_current_root_name()
+        return (note,octave)
 
+
+    def get_current_octave(self):
+        octcorr = 4 # the default octave
+        try:
+            # Find the octave correction
+            octcorr = int(self.octcorr.GetValue().strip())
+        except:
+            print ("Can't determine octave: invalid value")
+
+        return octcorr
+
+    def get_current_root_name(self):
+        """ Return (as string) the name of the current root note (not its octave)."""
+        for root in self.root_notes:
+            if root.GetValue():
+                return pitchlist_orig[root.GetId()]
+
+
+    def update_from_root(self):
+        """ This should be called when the root note has changed.
+        We will update the notes on the right hand side """
+        (note,octave) = self.get_root_note()
+        rootidx = pitchlist_orig.index(note)
+        self.candidate_notes = []
+        for i,pitchb in enumerate(self.pitchnames):
+            j = (i+rootidx)
+            nm = pitches[ j%12 ]
+            octv=octave
+            if j>=12: octv+=1
+            self.candidate_notes.append( (nm, octv) )
+            pitchb.SetLabel(" %s%i "%(nm,octv))
+
+            
+
+    def onRootChange(self,e):
+        """ This is when the root note changes (or its octave). """
+        self.rootnote = self.get_root_note()
+        self.update_from_root()
+        
+        self.update_pitch()
+        #print rb.GetId(),' is clicked from Radio Group' 
+
+
+        
     def onRadioGroup(self,e): 
         rb = e.GetEventObject()
         self.selected_tone = rb.GetId()
         self.update_pitch()
         #print rb.GetId(),' is clicked from Radio Group' 
 
+        
 
     def onTemperChoice(self,e):
         # Possibly a new temperament has been chosen
@@ -337,18 +385,6 @@ class Frame(wx.Frame):
 
     def textChange(self,e):
         self.update_pitch()
-
-
-    def get_current_octave(self):
-        octcorr = 4
-        try:
-            # Find the octave correction
-            octcorr = int(self.octcorr.GetValue().strip())
-        except:
-            print ("Can't determine octave: invalid value")
-
-        return octcorr
-
 
 
     def get_base_pitch(self):

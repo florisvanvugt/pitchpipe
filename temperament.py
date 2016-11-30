@@ -22,7 +22,32 @@ def canonical_pitch_name(name):
 
 
 
+def note_index_in_tonality(self,basename,note):
+    """ Returns the index of a given note in a particular tonality,
+    i.e. the number of semitones you need to go up from the given
+    base note to reach the given note.
+    e.g. if base=D and note=E then the index is 2.
 
+    Arguments
+    basename : the name of the tonality root
+    note : the name of the note whose position you want to know
+    """
+
+    # Find the indices
+    b_i = pitchlist_orig.index(basename)
+    n_i = pitchlist_orig.index(note)
+
+    if n_i<b_i:
+        return 12+(n_i-b_i)
+    else:
+        return (n_i-b_i)
+
+
+
+
+
+
+    
 
 class EqualTemperament:
 
@@ -90,27 +115,6 @@ class MeanTone:
 
 
 
-    def note_index_in_tonality(self,basename,note):
-        """ Returns the index of a given note in a particular tonality,
-        i.e. the number of semitones you need to go up from the given
-        base note to reach the given note.
-        e.g. if base=D and note=E then the index is 2.
-        
-        Arguments
-        basename : the name of the tonality root
-        note : the name of the note whose position you want to know
-        """
-
-        # Find the indices
-        b_i = pitchlist_orig.index(basename)
-        n_i = pitchlist_orig.index(note)
-
-        if n_i<b_i:
-            return 12+(n_i-b_i)
-        else:
-            return (n_i-b_i)
-        
-
     
     
     def __init__(self,tonalroot,refpitchname,refpitchoctave,refpitchfrequency):
@@ -138,8 +142,8 @@ class MeanTone:
         # The ratio associated with the reference pitch (e.g. if A is the reference pitch
         # but D is the tonal root, then this variable tells us what the ratio is that we need
         # to divide A by to get to D).
-        self.refpitchratio = self.freqrats[ self.note_index_in_tonality(self.tonalroot,
-                                                                        self.refpitchname) ]
+        self.refpitchratio = self.freqrats[ note_index_in_tonality(self.tonalroot,
+                                                                   self.refpitchname) ]
 
         
 
@@ -157,7 +161,7 @@ class MeanTone:
         name = canonical_pitch_name(notename)
 
         # Find what the index of the note is in the given tonality
-        rat = self.freqrats[ self.note_index_in_tonality(self.tonalroot,name) ]
+        rat = self.freqrats[ note_index_in_tonality(self.tonalroot,name) ]
 
         # All right, so we need to know how far this note is away from
         # the reference pitch.
