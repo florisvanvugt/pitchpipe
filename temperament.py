@@ -22,7 +22,7 @@ def canonical_pitch_name(name):
 
 
 
-def note_index_in_tonality(self,basename,note):
+def note_index_in_tonality(basename,note):
     """ Returns the index of a given note in a particular tonality,
     i.e. the number of semitones you need to go up from the given
     base note to reach the given note.
