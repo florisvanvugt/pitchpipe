@@ -166,7 +166,8 @@ class MeanTone:
         # All right, so we need to know how far this note is away from
         # the reference pitch.
         # So we want a number of semitones and a number of octaves.
-        noct  = 0 # TODO
+        noct  = octave-self.refpitchoctave
+        #noct  = 0 # TODO
 
         return np.power(2,noct)*(rat/self.refpitchratio)*self.refpitchfrequency
         

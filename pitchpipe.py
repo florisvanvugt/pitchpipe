@@ -187,20 +187,6 @@ class Frame(wx.Frame):
         rootp = wx.BoxSizer(wx.VERTICAL)
         rootp.Add( wx.StaticText(panel, -1, "Root") )
 
-        octp = wx.BoxSizer(wx.HORIZONTAL)
-        octp.Add( (10,-1) )
-        octp.Add( wx.StaticText(panel, -1, "Octave") )
-        self.octcorr = wx.TextCtrl(panel, -1, "4", size=(50, -1))
-        self.octcorr.Bind( wx.EVT_TEXT, self.textChange)
-        octp.Add( self.octcorr )
-        self.incrb = wx.Button(panel,  wx.ID_ADD,"+",size=(25,-1))
-        self.incrb.Bind(wx.EVT_BUTTON, self.onOctaveChange)
-        self.decrb = wx.Button(panel, wx.ID_DELETE, "-",size=(25,-1))
-        self.decrb.Bind(wx.EVT_BUTTON,  self.onOctaveChange)
-        octp.Add( self.decrb )
-        octp.Add( self.incrb )
-        rootp.Add(octp)
-
         self.root_notes = []
         for i,pitch in enumerate(pitches):
             lbl = " %s "%pitch
@@ -213,8 +199,25 @@ class Frame(wx.Frame):
             self.root_notes.append(rb)
             #grid.Add( (15,-1) )
             rootp.Add( rb )
+
         topp.Add(rootp)
-        topp.Add( (30,-1) )
+        topp.Add( (20,-1) )
+
+        octp = wx.BoxSizer(wx.HORIZONTAL)
+        octp.Add( (10,-1) )
+        octp.Add( wx.StaticText(panel, -1, "Octave") )
+        self.octcorr = wx.TextCtrl(panel, -1, "4", size=(50, -1))
+        self.octcorr.Bind( wx.EVT_TEXT, self.textChange)
+        octp.Add( self.octcorr )
+        self.incrb = wx.Button(panel,  wx.ID_ADD,"+",size=(25,-1))
+        self.incrb.Bind(wx.EVT_BUTTON, self.onOctaveChange)
+        self.decrb = wx.Button(panel, wx.ID_DELETE, "-",size=(25,-1))
+        self.decrb.Bind(wx.EVT_BUTTON,  self.onOctaveChange)
+        octp.Add( self.decrb )
+        octp.Add( self.incrb )
+        topp.Add(octp)
+        topp.Add( (20,-1) )
+
         
         grid = wx.GridSizer(12,4,10,10)
         self.pitchnames = []
