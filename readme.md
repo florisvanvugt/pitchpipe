@@ -15,5 +15,14 @@ make
 ``` 
 
 
+### Notescript
+There is also an interface where you can write a little score using a tedious format and then have the program generate a wave file.
 
+See various examples in `examples`.
+
+e.g.
+
+```
+python3 notescript.py examples/ariodante1.txt
+```
 

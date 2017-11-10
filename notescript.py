@@ -21,6 +21,7 @@ from temperament import *
 
 def parse_script_file(fname):
 
+    # Read the notes
     f = open(fname,'r')
     ls = [ l.strip() for l in f.readlines() ]
     f.close()
@@ -152,20 +153,9 @@ def get_frequency(notename,octave):
 
     # Find what the frequency ratio of that tone is relative to the currently
     # selected base pitch
+    hz = temperament.get_frequency(notename,octave)
 
-    tone = pitchlist_orig.index(notename)
-    freqrat = frequency_ratios[tone]
-    basep = basepitch * freqrat
-
-    # All right, now figure out what the octave should be
-    # The logic is: the basepitch is A4 = 415.
-    # all notes are counted up from A4.
-    octcorr = octave
-    if tone >= pitchlist_orig.index('c'):
-        octcorr-=1
-    freq = basep * np.power(2.,(octcorr-4))
-
-    return freq
+    return hz
 
 
 
@@ -212,6 +202,7 @@ def wave_to_file(sound,filename):
 
 
 
+temperament = MeanTone('c','a',5,415)
 
 
 # Check if a "note" script was given
@@ -230,8 +221,10 @@ if len(sys.argv)>1:
             #import matplotlib.pyplot as plt
             #plt.plot(wv)
             #plt.show()
-            
-            wave_to_file(wv,fname+".wav")
+
+            fname = fname+".wav"
+            wave_to_file(wv,fname)
+            print("Output written to file %s"%fname)
     else:
         print("Cannot find file %s"%fname)
 
