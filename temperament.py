@@ -4,8 +4,10 @@ import numpy as np
 
 
 #pitches = "c c# d eb e f f# g g# a bb b".split(" ")
-flat  = chr(0x266D) #unichr(0x266D)
-sharp = chr(0x266F) #unichr(0x266F)
+#flat  = chr(0x266D)
+flat = unichr(0x266D)
+#sharp = chr(0x266F)
+sharp = unichr(0x266F)
 pitchlist = "c cis d ees e f fis g gis a bes b"
 pitchlist_orig = pitchlist.split(" ")
 pitches = pitchlist.replace('is',sharp).replace('es',flat).split(" ")

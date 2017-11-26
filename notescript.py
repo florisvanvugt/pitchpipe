@@ -3,9 +3,12 @@ import os
 import sys
 
 from temperament import *
+import re
 
 
 
+# Recoding some note names (essentially allowing aliases)
+recode = {'es':'ees'}
 
 
 
@@ -95,7 +98,138 @@ def parse_script_file(fname):
 
 
 
+def relative_pitch(notename,refname,refoct):
+    """ 
+    Determine the octave of a particular note, given a reference. 
+    This is following the lilypond convention. 
+    """
 
+    note_i = pitchlist_orig.index(notename)
+    ref_i  = pitchlist_orig.index(refname)
+
+    if abs(note_i-ref_i)<7:
+        # The two notes are close enough in the octave, so we keep the same octave
+        return refoct
+    else:
+        # We have to change octaves!
+        if note_i<ref_i:
+            return refoct+1
+        else: # ref_i<note_i
+            return refoct-1
+
+    return refoct
+
+
+
+
+def parse_yaml_file(yamlf):
+    import yaml
+    dat = yaml.load(open(yamlf,'r'))
+
+    # Duration of quarter note (in ms)
+    quarter_duration = dat["quarter_duration"]
+
+    # Reference note
+    refnote = dat["relative"].strip()
+    # Convert into scientific notation
+    refname = refnote[0] # e.g. c'
+    octavemarkers = refnote[1:]
+    ## TODO: actually parse the reference pitch
+    if refnote=="c''":  
+        refoct = 6
+    else:
+        print("Reference octave not understood!")
+        exit()
+
+    # So now we have refname,refpitch which tells us the current reference pitch
+
+    # Let's start parsing!
+
+    # The reference duration (we'll update it as we go along)
+    refduration = 4
+
+    notes = [] 
+    for readnote in  dat["notes"].split():
+
+        # We're currently reading this particular note "readnote"
+        # Step 1. figure out its pitch
+
+        # Step 1a. remove ties (TODO treat ties usefully)
+        readnote = readnote.replace("(","").replace(")","").lower()
+        
+
+        """
+        for readnote in allnotes:
+            m = re.match(r'^([a-z]+)([\',]*)([\d]*)(\.?)$',readnote)
+            if m:
+                print(m.groups())
+            else:
+                print("Error %s"%readnote)
+        """
+        
+        # Parse the note-notation
+        m = re.match(r'^([a-z]+)([\',]*)([\d]*)(\.?)$',readnote)
+        if not m:
+            print("Error parsing note %s"%readnote)
+            exit()
+        grps = m.groups()
+        print(grps)
+
+        # If this is a rest, that's easy...
+        if grps[0]=="r":
+            pitch_oct = None
+            pitch_name = "r"
+        else:
+            # Need to actually figure out the pitch
+
+            pitch_name = grps[0]
+
+            if pitch_name in recode.keys():
+                pitch_name = recode[pitch_name]
+
+            pitch_oct  = relative_pitch(pitch_name,refname,refoct)
+
+            if grps[1]!="":  # there is an octave modifier (or multiple ones)
+                for i in grps[1]:
+                    if i=="'": pitch_oct+=1
+                    if i==",": pitch_oct-=1
+
+            # Now this note becomes the reference for the next note, if you see what I mean
+            refname,refoct = pitch_name,pitch_oct
+            #pitch_oct = 5
+            #pitch_name = grps[0]
+
+            # TODO: transposition of octaves (from '' and ,, markers)
+            
+        
+        # Step 2. figure out the duration
+        if grps[2]=="": # if there is no duration entered...
+            dur_base = refduration # then we stick with the duration we had
+        else:
+            ## Need to actually parse the duration
+            dur_base = grps[2]
+            plushalf = grps[3]=="."
+
+        refduration = dur_base
+            
+        # Compute the duration in msec
+        dur_nquart = 4/float(dur_base)
+        if plushalf:
+            dur_nquart *= 1.5
+
+            
+        notes.append( {"pitch"            :pitch_name,
+                       "octave"           :pitch_oct,
+                       "duration.quarters":dur_nquart,
+                       "duration.ms"      :dur_nquart*quarter_duration} )
+
+        
+    # If c'' then two octaves above the middle c (=C4), so...
+    return notes
+
+
+    
+    return notes
 
 
 
@@ -210,10 +344,16 @@ if len(sys.argv)>1:
 
     fname = sys.argv[1]
     if os.path.isfile(fname):
-        ret = parse_script_file(fname)
+
+        if fname.endswith('yaml'):
+            ret = parse_yaml_file(fname)
+
+        else:
+            ret = parse_script_file(fname)
         if ret!=None:
             notes = ret
-            print(notes)
+            for n in notes:
+                print(n)
 
             wv = sonify(notes)
             print (wv)
@@ -221,7 +361,7 @@ if len(sys.argv)>1:
             #import matplotlib.pyplot as plt
             #plt.plot(wv)
             #plt.show()
-
+            
             fname = fname+".wav"
             wave_to_file(wv,fname)
             print("Output written to file %s"%fname)

@@ -26,3 +26,9 @@ e.g.
 python3 notescript.py examples/ariodante1.txt
 ```
 
+
+
+# TODO
+Lots and lots!
+
+* [ ] Allow alternative pitch notations (cis / des)

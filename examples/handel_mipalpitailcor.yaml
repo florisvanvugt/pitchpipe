@@ -1,0 +1,20 @@
+relative : "c''"
+
+quarter_duration : 2000
+
+notes : "  r8 bes16 a bes8 c
+  f,4 bes
+  r8 es16 d es8 c d bes f4
+  r8 bes16 a bes8 bes 
+  g' e f bes,
+  a4 g8. f16 f8
+  f'16 e f8 f,
+  es' f, d'4( d8) c16 bes c8 g
+  a f r bes c16 bes c d c d bes c d c d es d es c d es d es f es f d es 
+  f8 bes, bes'4
+  r8 c f, a bes4 r r2
+  r1 r r r r
+  r8 f16 e f8 g c, c'16 bes c8 c,
+  bes' c, a'4( a8) g16 f g d e c c4. bes8 bes4( bes8) a16 g a8 a' bes16 a bes c bes c a bes
+  g f g a g a f g a4 r
+"
