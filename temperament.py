@@ -13,6 +13,18 @@ pitchlist_orig = pitchlist.split(" ")
 pitches = pitchlist.replace('is',sharp).replace('es',flat).split(" ")
 
 
+# Recoding some note names (essentially allowing aliases)
+recode = {'es':'ees',
+          'dis':'cis',
+          'eis':'f',
+          'ges':'fis',
+          'aes':'gis',
+          'as':'gis',
+          'aes':'gis',
+          'ais':'bes',
+          'bis':'c'
+}
+
 
 
 def canonical_pitch_name(name):

@@ -7,8 +7,6 @@ import re
 
 
 
-# Recoding some note names (essentially allowing aliases)
-recode = {'es':'ees'}
 
 
 
