@@ -19,7 +19,7 @@ from temperament import *
 temperaments = [ "quarter-comma meantone", "equal" ]
 
 from tkinter import Tk, Label, Button
-
+import tkinter.font as tkFont
 
 
 
@@ -188,5 +188,9 @@ class PitchPipe:
             self.playb.configure(text='Play')
 
 root = Tk()
+
+default_font = tkFont.nametofont("TkDefaultFont")
+default_font.configure(size=18)
+
 pp = PitchPipe(root)
 root.mainloop()

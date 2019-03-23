@@ -3,3 +3,4 @@
 explore.py
 __pycache__
 examples/*.wav
+*.pyc
