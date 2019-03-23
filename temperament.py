@@ -104,7 +104,10 @@ class EqualTemperament:
         noct  = octave-self.refpitchoctave
         nsemi = pitchlist_orig.index(name)-self.refpitchindex
 
-        return np.power(2,noct+(nsemi/12.))*self.refpitchfrequency
+        pwr = np.float(noct+(nsemi/12.))
+        print(pwr)
+        mult = 2**pwr
+        return mult*self.refpitchfrequency
         
     
 
@@ -188,7 +191,7 @@ class MeanTone:
         noct  = octave-self.refpitchoctave
         #noct  = 0 # TODO
 
-        return np.power(2,noct)*(rat/self.refpitchratio)*self.refpitchfrequency
+        return np.power(2,float(noct))*(rat/self.refpitchratio)*self.refpitchfrequency
         
     
 
