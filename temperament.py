@@ -17,7 +17,6 @@ pitchlist = "c cis d ees e f fis g gis a bes b"
 pitchlist_orig = pitchlist.split(" ")
 pitches = pitchlist.replace('is',sharp).replace('es',flat).split(" ")
 
-
 # Recoding some note names (essentially allowing aliases)
 recode = {'es':'ees',
           'dis':'cis',
@@ -29,6 +28,13 @@ recode = {'es':'ees',
           'ais':'bes',
           'bis':'c'
 }
+
+
+
+def label2note(l):
+    # Convert note label into the internally used notation
+    # (without odd characters for sharp and flat)
+    return pitchlist_orig[ pitches.index(l) ]
 
 
 

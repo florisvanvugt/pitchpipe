@@ -18,7 +18,7 @@ from temperament import *
 
 temperaments = [ "quarter-comma meantone", "equal" ]
 
-from tkinter import Tk, Label, Button
+from tkinter import Tk, Label, Button, Entry
 import tkinter.font as tkFont
 
 
@@ -124,26 +124,52 @@ octaves = '1 2 3 4 5 6'.split()
 
 class PitchPipe:
     
-    def __init__(self, master):
+    def __init__(self, master,defaultfont):
         self.master = master
         master.title("Sone of a Pitch")
 
         row = 0
-        self.label = Label(master, text='Root')
+        self.label = Label(master, text='Mean-tone')
         self.label.grid(column=0,row=row)
 
         row+=1
+        self.label = Label(master, text='Root')
+        self.label.grid(column=0,row=row)
+        self.rootnote = tkinter.StringVar(master)
+        self.rootnote.set(pitches[0]) # default value
+        self.root_sel = tkinter.OptionMenu(master, self.rootnote,*pitches,command=self.change_params)#"one", "two", "three")
+        self.root_sel.configure(width=10)
+        self.root_sel.grid(column=1,row=row)
+        master.nametowidget(self.root_sel.menuname).config(font=defaultfont)
+        
+        row+=1
+        self.label = Label(master, text='Base a4=')
+        self.label.grid(column=0,row=row)
+
+        self.basea = tkinter.StringVar(master)
+        self.basea.set('415')
+        self.e_basea = Entry(master,textvariable=self.basea)
+        self.e_basea.grid(column=1,row=row)
+        
+        self.label = Label(master, text='Hz')
+        self.label.grid(column=2,row=row)
+
+        self.updateb = Button(master,text='update',command=self.update_temperament)
+        self.updateb.grid(column=3,row=row)
+        
+        row+=1
         self.pitch = tkinter.StringVar(master)
-        self.pitch.set('a') # default value
-        self.pitches = tkinter.OptionMenu(master, self.pitch, *pitches,command=self.change_params)#"one", "two", "three")
+        self.pitch.set(pitches[0]) # default value
+        self.pitches = tkinter.OptionMenu(master, self.pitch,*pitches,command=self.change_params)#"one", "two", "three")
+        self.pitches.configure(width=10)
         self.pitches.grid(column=0,row=row)
+        master.nametowidget(self.pitches.menuname).config(font=defaultfont)
 
         self.octave = tkinter.StringVar(master)
         self.octave.set('4') # default value
         self.octaves = tkinter.OptionMenu(master, self.octave, *octaves, command=self.change_params)#"one", "two", "three")
+        master.nametowidget(self.octaves.menuname).config(font=defaultfont)
         self.octaves.grid(column=1,row=row)
-
-        
 
         row+=1
 
@@ -154,19 +180,26 @@ class PitchPipe:
 
         self.refnote = "a"
         self.refoct = 4
-        self.basepitch = 415
-        self.rootnote = 'a'
-        self.temperament = MeanTone(self.rootnote,self.refnote,self.refoct,self.basepitch)
 
         self.player = PitchPlayer()
-        self.update_pitch()
+        self.update_temperament()
+        #self.update_pitch()
 
 
+
+    def update_temperament(self):
+        try:
+            self.basepitch = float(self.basea.get())
+        except:
+            pass
+        rootnote = label2note(self.rootnote.get())
+        self.temperament = MeanTone(rootnote,self.refnote,self.refoct,self.basepitch)
+        
         
     def update_pitch(self):
-        i = pitches.index(self.pitch.get())
+        note = label2note(self.pitch.get())
         oct = int(self.octave.get())
-        pitch = self.temperament.get_frequency(pitchlist_orig[i],oct)
+        pitch = self.temperament.get_frequency(note,oct)
 
         self.player.setpitch([pitch])
 
@@ -174,6 +207,7 @@ class PitchPipe:
 
     def change_params(self,e):
         # When something has changed
+        self.update_temperament()
         self.update_pitch()
         
         
@@ -187,10 +221,11 @@ class PitchPipe:
             self.player.stop()
             self.playb.configure(text='Play')
 
+
 root = Tk()
-
+            
 default_font = tkFont.nametofont("TkDefaultFont")
-default_font.configure(size=18)
+default_font.configure(size=22)
 
-pp = PitchPipe(root)
+pp = PitchPipe(root,default_font)
 root.mainloop()
