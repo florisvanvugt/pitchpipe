@@ -25,6 +25,11 @@ import random
 
 from player import *
 
+import threading
+
+
+FLIP_INTERVAL = 20 # how often we flip the pitches (in sec)
+
 
 class Accompany:
     
@@ -84,6 +89,7 @@ class Accompany:
         print(freqs)
         self.player.setpitch(freqs)
         
+
         
     def play(self):
         if not self.playing:
@@ -91,16 +97,32 @@ class Accompany:
             self.playing = True
             self.player.play()
             self.playb.configure(text='Stop')
+            self.thread = threading.Thread(target=regularflip)
+            self.thread.start()
         else:
             self.playing = False
             self.player.stop()
             self.playb.configure(text='Play')
+            #if self.thread: # Thread should stop by itself
+            #    self.thread.stop()
 
 
+
+        
+
+                
 root = Tk()
             
 default_font = tkFont.nametofont("TkDefaultFont")
 default_font.configure(size=22)
 
 pp = Accompany(root,default_font)
+
+def regularflip():
+    while pp.playing:
+        time.sleep(FLIP_INTERVAL)
+        print("Flipping pitches")
+        pp.choose_pitch()
+
+
 root.mainloop()
