@@ -17,6 +17,8 @@ pitchlist = "c cis d ees e f fis g gis a bes b"
 pitchlist_orig = pitchlist.split(" ")
 pitches = pitchlist.replace('is',sharp).replace('es',flat).split(" ")
 
+N_OCTAVE = len(pitchlist_orig)
+
 # Recoding some note names (essentially allowing aliases)
 recode = {'es':'ees',
           'dis':'cis',
@@ -35,6 +37,20 @@ def label2note(l):
     # Convert note label into the internally used notation
     # (without odd characters for sharp and flat)
     return pitchlist_orig[ pitches.index(l) ]
+
+
+
+def interval(base,octv,intvl):
+    """ 
+    Return a particular interval (in semitones) above a base note.
+    base : a base pitch
+    octv : the octave of the base note
+    intvl : the interval (in semitones) that we want to be above the base pitch
+    """
+    base = canonical_pitch_name(base)
+    basei = pitchlist_orig.index(base) # get the index of the base pitch
+    targeti = basei+intvl
+    return pitchlist_orig[targeti%N_OCTAVE],octv+int(targeti/N_OCTAVE)
 
 
 
@@ -103,6 +119,7 @@ class EqualTemperament:
         octave    : the octave number of the note, using the Scientific Pitch Convention, where C4=middle C and octaves change between B and C
         """
         name = canonical_pitch_name(notename)
+        octave = int(octave)
 
         # All right, so we need to know how far this note is away from
         # the reference pitch.
@@ -187,6 +204,7 @@ class MeanTone:
         octave    : the octave number of the note, using the Scientific Pitch Convention, where C4=middle C and octaves change between B and C
         """
         name = canonical_pitch_name(notename)
+        octave = int(octave)
 
         # Find what the index of the note is in the given tonality
         rat = self.freqrats[ note_index_in_tonality(self.tonalroot,name) ]
@@ -196,8 +214,10 @@ class MeanTone:
         # So we want a number of semitones and a number of octaves.
         noct  = octave-self.refpitchoctave
         #noct  = 0 # TODO
-
-        return np.power(2,float(noct))*(rat/self.refpitchratio)*self.refpitchfrequency
+        pw = np.power(2.,float(noct))
+        r = (rat/self.refpitchratio)
+        f = self.refpitchfrequency
+        return pw*r*f
         
     
 
