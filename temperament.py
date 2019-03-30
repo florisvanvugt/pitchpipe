@@ -63,6 +63,17 @@ def canonical_pitch_name(name):
 
 
 
+def pitch_equals(a,b):
+    # Whether two pitches are equal (they may be noted differently, i.e. gis=aes)
+    return canonical_pitch_name(a)==canonical_pitch_name(b)
+
+
+def pitch_in(a,lst):
+    # Whether the pitch a is in some list
+    is_in = [ pitch_equals(a,l) for l in lst ]
+    return any(is_in)
+
+
 def note_index_in_tonality(basename,note):
     """ Returns the index of a given note in a particular tonality,
     i.e. the number of semitones you need to go up from the given
