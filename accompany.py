@@ -109,16 +109,16 @@ class Accompany:
             # Restrict options to what is playable on the duduk
             options = [ (i,p) for (i,p) in options if pitch_in(i,PITCH_CANDIDATES) ]
             self.current_note = weighted_choice(options)
-            print(self.current_note)
+            #print(self.current_note)
             
         basep,octv = self.current_note,3 # set the pitch
         self.temperament = MeanTone(basep,self.refnote,self.refoct,self.basepitch)
         pitches = [ (basep,octv-2),
             (basep,octv), interval(basep,octv,7)
         ]
-        print(pitches)
+        #print(pitches)
         freqs = [ self.temperament.get_frequency(n,o) for (n,o) in pitches ]
-        print(freqs)
+        #print(freqs)
         self.player.setpitch(freqs)
         self.label.configure(text=self.current_note)
         
@@ -158,6 +158,7 @@ def regularflip():
         if time.time()-t0>FLIP_INTERVAL:
             print("Flipping pitches")
             pp.choose_pitch()
+            t0 = time.time()
         time.sleep(.1) 
 
 
