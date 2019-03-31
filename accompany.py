@@ -1,4 +1,10 @@
-# Making a TK interface for the Pitch Pipe
+# This is a simple chord progression generator that can be used for accompaniment.
+
+
+# Could also pick existing chord sequences such as from here:
+## http://ddmal.music.mcgill.ca/research/billboard
+
+
 
 from __future__ import division #Avoid division problems in Python 2
 
@@ -34,11 +40,16 @@ PITCH_CANDIDATES = ['fis','gis','a','b','cis','d','e'] # the options that are ea
 
 # Based on a particular note, what are the possible continuations?
 # This is coded as (interval,p) where p is some probability weight (not necessarily summing to one)
-CONTINUATIONS = [ (7,5), # dominant (V)
+CONTINUATIONS = [ (7,4), # dominant (V)
                   (5,4), # subdominant (IV)
-                  (2,3), # II
+                  (2,2), # II
+                  (9,2), # VI
 ]
 
+freqs = []
+
+
+TEMPERAMENT = Classic
 
 
 def weighted_choice(choices):
@@ -78,7 +89,7 @@ class Accompany:
         self.player = PitchPlayer()
         self.player.play() # play nothing
         self.current_note = None
-        self.temperament = MeanTone('c',self.refnote,self.refoct,self.basepitch)
+        self.temperament = TEMPERAMENT('c',self.refnote,self.refoct,self.basepitch)
 
 
         
@@ -109,16 +120,13 @@ class Accompany:
             # Restrict options to what is playable on the duduk
             options = [ (i,p) for (i,p) in options if pitch_in(i,PITCH_CANDIDATES) ]
             self.current_note = weighted_choice(options)
-            #print(self.current_note)
             
         basep,octv = self.current_note,3 # set the pitch
-        self.temperament = MeanTone(basep,self.refnote,self.refoct,self.basepitch)
+        self.temperament = TEMPERAMENT(basep,self.refnote,self.refoct,self.basepitch)
         pitches = [ (basep,octv-2),
             (basep,octv), interval(basep,octv,7)
         ]
-        #print(pitches)
         freqs = [ self.temperament.get_frequency(n,o) for (n,o) in pitches ]
-        #print(freqs)
         self.player.setpitch(freqs)
         self.label.configure(text=self.current_note)
         
@@ -133,12 +141,15 @@ class Accompany:
             self.thread = threading.Thread(target=regularflip)
             self.thread.start()
         else:
-            self.current_note = None
-            self.playing = False
-            self.player.stop()
-            self.playb.configure(text='Play')
-            #if self.thread: # Thread should stop by itself
-            #    self.thread.stop()
+            self.stop_playing()
+
+    def stop_playing(self):
+        self.current_note = None
+        self.playing = False
+        self.player.stop()
+        self.playb.configure(text='Play')
+        #if self.thread: # Thread should stop by itself
+        #    self.thread.stop()
 
 
 
@@ -162,4 +173,11 @@ def regularflip():
         time.sleep(.1) 
 
 
+
+
+def on_closing():
+    pp.stop_playing()
+    root.destroy()
+        
+root.protocol("WM_DELETE_WINDOW", on_closing)
 root.mainloop()

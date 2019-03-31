@@ -40,6 +40,7 @@ def label2note(l):
 
 
 
+
 def interval(base,octv,intvl):
     """ 
     Return a particular interval (in semitones) above a base note.
@@ -74,6 +75,8 @@ def pitch_in(a,lst):
     return any(is_in)
 
 
+
+
 def note_index_in_tonality(basename,note):
     """ Returns the index of a given note in a particular tonality,
     i.e. the number of semitones you need to go up from the given
@@ -95,6 +98,26 @@ def note_index_in_tonality(basename,note):
         return (n_i-b_i)
 
 
+
+
+def notediff(na,octa,nb,octb):
+    """
+    Return the difference between two notes, A and B,
+    in semitones (within the scale) and octaves.
+    https://en.wikipedia.org/wiki/Scientific_pitch_notation
+
+    na   : note name of A
+    octa : octave number of A (using scientific pitch notation)
+    nb   : note name of B
+    octb : octave number of B
+    """
+
+    na = canonical_note_name(na)
+    nb = canonical_note_name(nb)
+
+    # TODO
+    pass
+    
 
 
 
@@ -234,3 +257,53 @@ class MeanTone:
 
 
     
+
+
+class Classic:
+
+    # Implements reasonably pure versions of all the intervals,
+    # at the expense of a great dependence on what the root note is.
+    # e.g. https://en.wikipedia.org/wiki/List_of_meantone_intervals
+
+    temperament = "classic"
+
+    # Convert from semitone interval to frequency ratio
+    STEP_RATIO = [ 1, 16/15, 9/8, 6/5, 5/4, 4/3, 25/18, 3/2, 8/5, 5/3, 9/5, 15/8 ] 
+    
+    def __init__(self,tonalroot,refpitchname,refpitchoctave,refpitchfrequency):
+        """ 
+        Initialise the temperament using some pitch reference (e.g. A4=440 Hz).
+        
+        Arguments
+        tonalroot         : the note that is the root of the tonal system (e.g. "a")
+        refpitchname      : the canonical name of the note (as a string), e.g. "a", "fis", "bes"
+        refpitchoctave    : the octave number of the note, using the Scientific Pitch Convention, where C4=middle C and octaves change between B and C
+        refpitchfrequency : the frequency (in Hz) of the reference pitch.
+        """
+        self.refpitchname      = canonical_pitch_name(refpitchname)
+        self.refpitchindex     = pitchlist_orig.index(self.refpitchname)
+        self.refpitchoctave    = refpitchoctave
+        self.refpitchfrequency = refpitchfrequency
+        self.tonalroot         = canonical_pitch_name(tonalroot)
+
+
+        # So right here we can compute the place of the reference pitch in the root tonality.
+        self.root_intvl = note_index_in_tonality(self.tonalroot,self.refpitchname)
+        self.root_freq_ratio = 1/self.STEP_RATIO[ self.root_intvl ] # the ratio we need to apply to the frequency of the reference pitch to get to the root pitch (in the reference octave)
+        
+        
+            
+    def get_frequency(self,notename,octave):
+        """ Get the frequency for a particular note and octave, e.g. G5 """
+
+        notename = canonical_pitch_name(notename)
+        intvl = note_index_in_tonality(self.tonalroot,notename) # find the index in the tonality of the root
+
+        # To get the frequency: from the reference note, transfer to the tonal root pitch
+        # in that octave, and from there, go up the interval to the desired note.
+        freq = self.refpitchfrequency * self.root_freq_ratio * self.STEP_RATIO[intvl]
+
+        doct = octave-self.refpitchoctave
+        
+        return freq*pow(2,doct)
+  

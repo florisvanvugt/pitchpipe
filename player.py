@@ -57,14 +57,14 @@ class PitchPlayer:
         at the given frequency.
         """
         self.pitches = pitch
-        print ("Currently playing: %s"%(" ".join([ "%.02f"%p for p in self.pitches ])))
         # Compute the factors (phase increase per unit of time
         self.factors  = [ float(pitch) * (2 * math.pi) / self.RATE for pitch in self.pitches ]
         if len(self.phase_offsets)!=len(self.factors):
             self.reset_phases()
-        # TODO: instead of resetting phases we could do something smarter, namely
-        # take the existing phases of oscillators we are keeping, and only
-        # resetting phases of oscillators that are "new".
+            # TODO: instead of resetting phases we could do something smarter, namely
+            # take the existing phases of oscillators we are keeping, and only
+            # resetting phases of oscillators that are "new".
+        print ("Currently playing: %s"%(" ".join([ "%.02f"%p for p in self.pitches ])))
     
 
 
