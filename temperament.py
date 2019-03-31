@@ -102,9 +102,11 @@ def note_index_in_tonality(basename,note):
 
 def notediff(na,octa,nb,octb):
     """
-    Return the difference between two notes, A and B,
+    Return the "upward" difference between two notes, A and B,
     in semitones (within the scale) and octaves.
     https://en.wikipedia.org/wiki/Scientific_pitch_notation
+    The idea is that "semitones" is always positive, i.e.
+    the notediff between C5 and B4 will be 11 semitones minus 1 octave.
 
     na   : note name of A
     octa : octave number of A (using scientific pitch notation)
@@ -112,11 +114,20 @@ def notediff(na,octa,nb,octb):
     octb : octave number of B
     """
 
-    na = canonical_note_name(na)
-    nb = canonical_note_name(nb)
+    na = canonical_pitch_name(na)
+    nb = canonical_pitch_name(nb)
 
-    # TODO
-    pass
+    a_i = pitchlist_orig.index(na)
+    b_i = pitchlist_orig.index(nb)
+
+    intvl = b_i-a_i # the interval in semitones 
+    octdif = octb-octa
+
+    if intvl<0:
+        octdif-=1
+        intvl+=12 # add one octave
+
+    return (intvl,octdif)
     
 
 
@@ -287,23 +298,38 @@ class Classic:
         self.tonalroot         = canonical_pitch_name(tonalroot)
 
 
-        # So right here we can compute the place of the reference pitch in the root tonality.
-        self.root_intvl = note_index_in_tonality(self.tonalroot,self.refpitchname)
-        self.root_freq_ratio = 1/self.STEP_RATIO[ self.root_intvl ] # the ratio we need to apply to the frequency of the reference pitch to get to the root pitch (in the reference octave)
+        # Okay, so now we compute the frequency ratio between the reference pitch,
+        # and the tonal root (where by convention we use the same octave as the reference pitch)
+        self.root_freq_ratio = 1/self.get_ratio(self.refpitchname,self.refpitchoctave)
+        # the ratio we need to apply to the frequency of the reference pitch to get to the root pitch (in the reference octave)
         
         
-            
+
+
+    def get_ratio(self,notename,octave):
+        """ Return the frequency ratio of the given note (and its octave)
+        relative to the current tonal root.
+        The tonal root will be the self.tonalroot and its octave will be,
+        according to convention, the octave of the reference pitch.
+        """
+        notename = canonical_pitch_name(notename)
+        (nsemi,noct) = notediff(self.tonalroot,self.refpitchoctave,notename,octave)
+
+        # Okay, now the rest is fairly early, we just convert the semitones into a frequency
+        # ratio, and then also apply the difference in octaves!
+        return self.STEP_RATIO[nsemi] * pow(2,noct)
+
+
+    
     def get_frequency(self,notename,octave):
         """ Get the frequency for a particular note and octave, e.g. G5 """
 
-        notename = canonical_pitch_name(notename)
-        intvl = note_index_in_tonality(self.tonalroot,notename) # find the index in the tonality of the root
+        # Get the frequency ratio relative to the tonal root
+        freqrat = self.get_ratio(notename,octave)
 
         # To get the frequency: from the reference note, transfer to the tonal root pitch
         # in that octave, and from there, go up the interval to the desired note.
-        freq = self.refpitchfrequency * self.root_freq_ratio * self.STEP_RATIO[intvl]
+        freq = self.refpitchfrequency * self.root_freq_ratio * freqrat
 
-        doct = octave-self.refpitchoctave
-        
-        return freq*pow(2,doct)
+        return freq
   
