@@ -54,7 +54,7 @@ class PitchPipe:
 
         self.basea = tkinter.StringVar(master)
         self.basea.set('415')
-        self.e_basea = Entry(master,textvariable=self.basea)
+        self.e_basea = Entry(master,textvariable=self.basea,font=defaultfont,width=8)
         self.e_basea.grid(column=1,row=row)
         
         self.label = Label(master, text='Hz')
@@ -95,6 +95,7 @@ class PitchPipe:
 
         self.player = PitchPlayer()
         self.update_temperament()
+        self.change_params(None)
         #self.update_pitch()
 
 
