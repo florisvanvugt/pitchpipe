@@ -26,7 +26,7 @@ from player import *
 
 
 
-octaves = '1 2 3 4 5 6'.split()
+octaves = '1 2 3 4 5 6 7'.split()
 
 class PitchPipe:
     
@@ -71,11 +71,17 @@ class PitchPipe:
         self.pitches.grid(column=0,row=row)
         master.nametowidget(self.pitches.menuname).config(font=defaultfont)
 
+        octavep = tkinter.Frame(master)
+        octavep.grid(column=1,row=row)
         self.octave = tkinter.StringVar(master)
         self.octave.set('4') # default value
-        self.octaves = tkinter.OptionMenu(master, self.octave, *octaves, command=self.change_params)#"one", "two", "three")
+        self.octaves = tkinter.OptionMenu(octavep, self.octave, *octaves, command=self.change_params)#"one", "two", "three")
         master.nametowidget(self.octaves.menuname).config(font=defaultfont)
-        self.octaves.grid(column=1,row=row)
+        self.octaves.pack(side=tkinter.LEFT)
+        self.octupb   = Button(octavep,text='+',command=self.upoct)
+        self.octdownb = Button(octavep,text='-',command=self.downoct)
+        self.octupb.pack(side=tkinter.LEFT)
+        self.octdownb.pack(side=tkinter.LEFT)
 
         row+=1
 
@@ -92,6 +98,19 @@ class PitchPipe:
         #self.update_pitch()
 
 
+    def upoct(self):
+        opt = self.octave.get()
+        o = octaves.index(opt)
+        if o<len(octaves)-1: o+=1
+        self.octave.set(octaves[o])
+        self.change_params(None)
+
+    def downoct(self):
+        opt = self.octave.get()
+        o = octaves.index(opt)
+        if o>0: o-=1
+        self.octave.set(octaves[o])
+        self.change_params(None)
 
     def update_temperament(self):
         try:
