@@ -15,6 +15,7 @@ import numpy as np
 import pickle
 
 from temperament import *
+import scipy.signal
 
 temperaments = [ "quarter-comma meantone", "equal" ]
 
@@ -55,8 +56,11 @@ class PitchPlayer:
         # The wave associated with the scale note
         wav = np.zeros(frame_count)
 
+        generator = np.sin
+        #generator = scipy.signal.sawtooth
+        
         for (offset,factor) in zip(self.phase_offsets,self.factors):
-            wav += self.AMPLITUDE*np.sin([ offset + factor*x for x in range(frame_count) ])
+            wav += self.AMPLITUDE*generator([ offset + factor*x for x in range(frame_count) ])
 
         # Update the phases: advance by factor*time for each
         self.phase_offsets = [ (offs + frame_count*fact)%(2*math.pi) for offs,fact in zip(self.phase_offsets,self.factors) ]
